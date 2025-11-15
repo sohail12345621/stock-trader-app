@@ -155,6 +155,22 @@
             margin-left: 10px;
         }
         .logout-btn:hover { color: var(--primary-color); }
+        
+        /* New style for the base currency selector */
+        .portfolio-value {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        #base-currency-select {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            padding: 2px 5px;
+            font-size: 0.9rem;
+        }
 
         .dashboard {
             display: grid;
@@ -408,7 +424,12 @@
             <h1>Dashboard</h1>
             <div class="user-info">
                 <div>Welcome, <strong id="user-name">...</strong></div>
-                <div>Base Cash: <strong id="user-cash-base">$0.00</strong> (USD)</div>
+                <!-- New Portfolio Value Display -->
+                <div class="portfolio-value">
+                    <span>Total Value:</span>
+                    <strong id="user-portfolio-total">₹0.00</strong>
+                    <select id="base-currency-select" class="form-input" style="padding: 2px 5px; font-size: 0.9rem; flex: 0;"></select>
+                </div>
                 <button id="logout-btn" class="logout-btn">Logout</button>
             </div>
         </header>
@@ -480,6 +501,12 @@
                                 <!-- UK Flag SVG -->
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 11"><path fill="#00247d" d="M0 0h21v11H0z"/><path fill="#fff" d="M0 0l21 11m0-11L0 11"/><path fill="none" stroke="#fff" stroke-width="2.2" d="M-1 5.5h23m-11-6v12"/><path fill="none" stroke="#cf142b" stroke-width="1.466" d="M-1 5.5h23m-11-6v12"/><path fill="none" stroke="#cf142b" stroke-width="1.466" d="M0 0l21 11m0-11L0 11"/></svg>
                                 <span>LSE</span>
+                            </button>
+                            <!-- New NSE Button -->
+                            <button class="exchange-btn" data-exchange="NSE" data-currency="INR">
+                                <!-- India Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 6"><rect width="9" height="6" fill="#F93"/><rect width="9" height="4" fill="#FFF"/><rect width="9"height="2" fill="#128807"/><circle cx="4.5" cy="3" r=".8" fill="none" stroke="#008" stroke-width=".2"/><path d="M4.5 2.2v1.6m-.4-.8h.8m-.7.1l.6.6m-.6 0l.6-.6M3.3 3l1.2.3m0-.6l-.3 1.2m-.6 0l-1.2-.3m0 .6l.3-1.2" fill="none" stroke="#008" stroke-width=".1"/></svg>
+                                <span>NSE</span>
                             </button>
                             <button class="exchange-btn" data-exchange="TSE" data-currency="JPY">
                                 <!-- Japan Flag SVG -->
@@ -596,7 +623,8 @@
         
         // New multi-currency portfolio
         const defaultPortfolio = { 
-            cash: { USD: 10000, GBP: 0, EUR: 0, JPY: 0, CNY: 0 }, 
+            // Default to 10 Lakh INR (approx 12k USD) and 0 USD
+            cash: { USD: 0, GBP: 0, EUR: 0, JPY: 0, CNY: 0, INR: 1000000 }, 
             shares: {} 
         };
         let userPortfolio = JSON.parse(JSON.stringify(defaultPortfolio)); // Deep copy
@@ -607,7 +635,8 @@
             GBP: 0.80, // 1 USD = 0.80 GBP
             EUR: 0.92, // 1 USD = 0.92 EUR
             JPY: 148.5, // 1 USD = 148.5 JPY
-            CNY: 7.22  // 1 USD = 7.22 CNY
+            CNY: 7.22,  // 1 USD = 7.22 CNY
+            INR: 83.5   // 1 USD = 83.5 INR
         };
         const supportedCurrencies = Object.keys(MOCK_RATES);
 
@@ -625,7 +654,10 @@
           // TSE data in JPY
           SONY: { name: "Sony Group Corp", data: [ { date: '2023-10-01', close: 12500, volume: 5_000_000 }, { date: '2023-10-02', close: 12550, volume: 4_800_000 }, { date: '2023-10-03', close: 12480, volume: 5_100_000 }, { date: '2023-10-04', close: 12600, volume: 5_300_000 }, { date: '2023-10-05', close: 12650, volume: 4_900_000 }, { date: '2023-10-06', close: 12700, volume: 4_700_000 }, { date: '2023-10-09', close: 12750, volume: 5_400_000 }, { date: '2023-10-10', close: 12720, volume: 5_000_000 }, { date: '2023-10-11', close: 12800, volume: 5_500_000 }, { date: '2023-10-12', close: 12850, volume: 5_200_000 } ]},
           // SSE data in CNY
-          KWE: { name: "Kweichow Moutai", data: [ { date: '2023-10-01', close: 1630.0, volume: 2_000_000 }, { date: '2023-10-02', close: 1635.0, volume: 1_800_000 }, { date: '2023-10-03', close: 1628.0, volume: 2_100_000 }, { date: '2023-10-04', close: 1640.0, volume: 2_300_000 }, { date: '2023-10-05', close: 1645.0, volume: 1_900_000 }, { date: '2023-10-06', close: 1650.0, volume: 1_700_000 }, { date: '2023-10-09', close: 1655.0, volume: 2_400_000 }, { date: '2023-10-10', close: 1652.0, volume: 2_000_000 }, { date: '2023-10-11', close: 1660.0, volume: 2_500_000 }, { date: '2023-10-12', close: 1665.0, volume: 2_200_000 } ]}
+          KWE: { name: "Kweichow Moutai", data: [ { date: '2023-10-01', close: 1630.0, volume: 2_000_000 }, { date: '2023-10-02', close: 1635.0, volume: 1_800_000 }, { date: '2023-10-03', close: 1628.0, volume: 2_100_000 }, { date: '2023-10-04', close: 1640.0, volume: 2_300_000 }, { date: '2023-10-05', close: 1645.0, volume: 1_900_000 }, { date: '2023-10-06', close: 1650.0, volume: 1_700_000 }, { date: '2023-10-09', close: 1655.0, volume: 2_400_000 }, { date: '2023-10-10', close: 1652.0, volume: 2_000_000 }, { date: '2023-10-11', close: 1660.0, volume: 2_500_000 }, { date: '2023-10-12', close: 1665.0, volume: 2_200_000 } ]},
+          // NSE data in INR
+          RELIANCE: { name: "Reliance Industries", data: [ { date: '2023-10-01', close: 2800.0, volume: 7_000_000 }, { date: '2023-10-02', close: 2820.0, volume: 6_500_000 }, { date: '2023-10-03', close: 2810.0, volume: 7_200_000 }, { date: '2023-10-04', close: 2850.0, volume: 8_000_000 }, { date: '2023-10-05', close: 2870.0, volume: 7_500_000 }, { date: '2023-10-06', close: 2865.0, volume: 7_300_000 }, { date: '2023-10-09', close: 2890.0, volume: 8_200_000 }, { date: '2023-10-10', close: 2880.0, volume: 7_800_000 }, { date: '2023-10-11', close: 2900.0, volume: 8_500_000 }, { date: '2023-10-12', close: 2910.0, volume: 8_100_000 } ]},
+          TCS: { name: "Tata Consultancy", data: [ { date: '2023-10-01', close: 3800.0, volume: 4_000_000 }, { date: '2023-10-02', close: 3820.0, volume: 3_800_000 }, { date: '2023-10-03', close: 3810.0, volume: 4_100_000 }, { date: '2023-10-04', close: 3850.0, volume: 4_500_000 }, { date: '2023-10-05', close: 3870.0, volume: 4_200_000 }, { date: '2023-10-06', close: 3865.0, volume: 4_000_000 }, { date: '2023-10-09', close: 3890.0, volume: 4_800_000 }, { date: '2023-10-10', close: 3880.0, volume: 4_300_000 }, { date: '2023-10-11', close: 3900.0, volume: 5_000_000 }, { date: '2023-10-12', close: 3910.0, volume: 4_700_000 } ]}
         };
         // Add more history data by reusing
         mockStockHistory.AMZN = { name: "Amazon.com", data: mockStockHistory.GOOGL.data };
@@ -637,6 +669,7 @@
         mockStockHistory.VOW3 = { name: "Volkswagen", data: mockStockHistory.SAP.data };
         mockStockHistory.TM = { name: "Toyota Motor", data: mockStockHistory.SONY.data };
         mockStockHistory.ICBC = { name: "ICBC Bank", data: mockStockHistory.KWE.data };
+        mockStockHistory.HDFCBANK = { name: "HDFC Bank", data: mockStockHistory.RELIANCE.data.map(d => ({...d, close: d.close / 1.8})) }; // Reuse reliance data, scaled down
 
         // List of all companies for the table
         const mockStockList = [
@@ -657,6 +690,9 @@
             { ticker: 'VOW3', name: 'Volkswagen AG', exchange: 'FWB', currency: 'EUR' },
             { ticker: 'KWE', name: 'Kweichow Moutai', exchange: 'SSE', currency: 'CNY' },
             { ticker: 'ICBC', name: 'ICBC Bank', exchange: 'SSE', currency: 'CNY' },
+            { ticker: 'RELIANCE', name: 'Reliance Industries', exchange: 'NSE', currency: 'INR' },
+            { ticker: 'TCS', name: 'Tata Consultancy', exchange: 'NSE', currency: 'INR' },
+            { ticker: 'HDFCBANK', name: 'HDFC Bank', exchange: 'NSE', currency: 'INR' },
         ];
 
         // --- DOM Elements ---
@@ -677,7 +713,8 @@
         const passwordSignupInput = document.getElementById('password-signup');
         
         const userNameEl = document.getElementById('user-name');
-        const userCashBaseEl = document.getElementById('user-cash-base');
+        const userPortfolioTotalEl = document.getElementById('user-portfolio-total');
+        const baseCurrencySelectEl = document.getElementById('base-currency-select');
         const cashListEl = document.getElementById('cash-list');
         const sharesListEl = document.getElementById('shares-list');
         const exchangeSelector = document.querySelector('.exchange-selector');
@@ -715,13 +752,17 @@
         // --- Helper Functions ---
         function formatCurrency(value, currency = 'USD') {
             const options = { style: 'currency', currency: currency };
-            if (currency === 'JPY') {
+            // JPY and INR (sometimes) don't use decimals in common display
+            if (currency === 'JPY' || (currency === 'INR' && value > 1000)) {
                 options.minimumFractionDigits = 0;
                 options.maximumFractionDigits = 0;
+            } else if (currency === 'INR') {
+                 options.minimumFractionDigits = 2;
+                 options.maximumFractionDigits = 2;
             }
-            // Use 'en-US' as a base locale for consistent formatting,
-            // but the currency symbol will change correctly.
-            return value.toLocaleString('en-US', options);
+            // Use 'en-IN' for India to get correct grouping, but override currency symbol
+            const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+            return value.toLocaleString(locale, options);
         }
         
         function formatPrice(value, currency = 'USD') {
@@ -801,6 +842,7 @@
                 // Load initial stock table and currency exchange
                 renderStockTable(currentExchange);
                 populateCurrencySelectors();
+                populateBaseCurrencySelector();
             } else {
                 // User is logged out
                 authContainer.style.display = 'flex';
@@ -954,8 +996,8 @@
                 currencyToSelect.appendChild(optionTo);
             });
             
-            currencyFromSelect.value = 'USD';
-            currencyToSelect.value = 'EUR';
+            currencyFromSelect.value = 'INR'; // Default From to INR
+            currencyToSelect.value = 'USD'; // Default To to USD
             updateExchangeRateDisplay();
         }
 
@@ -1014,6 +1056,38 @@
         }
 
         // --- UI Update Functions ---
+        
+        /**
+         * New function to calculate total portfolio value in a base currency
+         */
+        function calculateTotalPortfolioValue(baseCurrency = 'INR') {
+            let totalValueInUsd = 0;
+            
+            // 1. Calculate total cash value in USD
+            for (const [currency, amount] of Object.entries(userPortfolio.cash)) {
+                totalValueInUsd += amount / MOCK_RATES[currency];
+            }
+            
+            // 2. Calculate total shares value in USD
+            for (const [ticker, shares] of Object.entries(userPortfolio.shares)) {
+                 if (shares > 0) {
+                    const stock = mockStockList.find(s => s.ticker === ticker);
+                    if (!stock) continue; 
+                    
+                    const currency = stock.currency;
+                    const price = getLatestPrice(ticker);
+                    
+                    const priceInMainUnit = (currency === 'GBP') ? price / 100 : price;
+                    const valueInStockCurrency = priceInMainUnit * shares;
+                    
+                    // Convert this value to USD
+                    totalValueInUsd += valueInStockCurrency / MOCK_RATES[currency];
+                }
+            }
+            
+            // 3. Convert total USD value to the selected base currency
+            return totalValueInUsd * MOCK_RATES[baseCurrency];
+        }
 
         /**
          * Renders the main stock table based on the selected exchange.
@@ -1057,13 +1131,31 @@
         }
 
         /**
-         * Updates the portfolio sidebar (Cash & Shares).
+         * Populates the base currency selector dropdown in the header.
+         */
+        function populateBaseCurrencySelector() {
+            baseCurrencySelectEl.innerHTML = '';
+            supportedCurrencies.forEach(currency => {
+                const option = document.createElement('option');
+                option.value = currency;
+                option.textContent = currency;
+                baseCurrencySelectEl.appendChild(option);
+            });
+            // Default to INR per user location
+            baseCurrencySelectEl.value = 'INR'; 
+        }
+
+        /**
+         * Updates the portfolio sidebar (Cash & Shares) and the main header value.
          */
         function updatePortfolioView() {
-            userCashBaseEl.textContent = formatCurrency(userPortfolio.cash.USD, 'USD'); 
+            // Update header total portfolio value
+            const selectedBase = baseCurrencySelectEl.value || 'INR';
+            const totalValue = calculateTotalPortfolioValue(selectedBase);
+            userPortfolioTotalEl.textContent = formatCurrency(totalValue, selectedBase);
+
+            // Update cash list
             cashListEl.innerHTML = ''; // Clear cash list
-            sharesListEl.innerHTML = ''; // Clear shares list
-            
             let hasCash = false;
             for (const [currency, amount] of Object.entries(userPortfolio.cash)) {
                 if (amount > 0.01) { // Only show currencies they have
@@ -1080,6 +1172,8 @@
                 cashListEl.innerHTML = '<li>No cash held.</li>';
             }
             
+            // Update shares list
+            sharesListEl.innerHTML = ''; // Clear shares list
             let hasShares = false;
             for (const [ticker, shares] of Object.entries(userPortfolio.shares)) {
                 if (shares > 0) {
@@ -1282,6 +1376,12 @@
         currencyToSelect.addEventListener('change', updateExchangeRateDisplay);
         currencyAmountInput.addEventListener('input', updateExchangeRateDisplay);
         exchangeBtnAction.addEventListener('click', handleCurrencyExchange);
+        
+        // New listener for base currency change
+        baseCurrencySelectEl.addEventListener('change', () => {
+             // Just need to re-render the portfolio view, which will read the new value
+             updatePortfolioView();
+        });
 
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', initApp);
