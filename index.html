@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard</title>
+    <!-- Import Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- Base & Typography --- */
+        :root {
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --border-color: #333;
+            --text-color: #e0e0e0;
+            --text-muted: #888;
+            --primary-color: #4a90e2;
+            --green: #28a745;
+            --red: #dc3545;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* --- Auth Pages (Login/Sign Up) --- */
+        #auth-container {
+            display: flex; /* Changed from flex to default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(225deg, #1a237e 0%, #121212 50%);
+        }
+
+        .login-card {
+            background-color: var(--card-color);
+            padding: 2.5rem 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+        }
+        
+        /* Hide signup card by default */
+        #signup-view {
+            display: none;
+        }
+
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .login-card h2 {
+            margin: 0 0 1.5rem 0;
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px 10px;
+            font-size: 1rem;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            box-sizing: border-box; /* Important for padding to work */
+        }
+
+        .login-btn, .signup-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+        .login-btn:hover, .signup-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .toggle-auth {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+        .toggle-auth:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Main App View --- */
+        #app-view {
+            display: none; /* Hidden by default */
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--card-color);
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+
+        .user-info { font-size: 0.9rem; text-align: right; }
+        .user-info strong { color: var(--primary-color); }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        .logout-btn:hover { color: var(--primary-color); }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            grid-template-areas: "main sidebar";
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "sidebar"
+                    "main";
+            }
+        }
+
+        /* --- Card Component --- */
+        .card {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title { margin: 0; font-size: 1.2rem; font-weight: 600; }
+        
+        /* --- Sidebar (Portfolio) --- */
+        .sidebar { 
+            grid-area: sidebar; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #shares-list, #cash-list { list-style-type: none; padding: 0; margin: 0; }
+        #shares-list li, #cash-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #shares-list li:last-child, #cash-list li:last-child { border-bottom: none; }
+        .cash-title {
+            margin: 10px 0 5px 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        
+        /* Currency Exchange */
+        .currency-exchange-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        .form-row label {
+            flex-basis: 30%;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            align-self: center;
+        }
+        .form-input {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.9rem;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+        }
+        #exchange-rate-display {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 5px;
+            height: 1.2em;
+        }
+        .exchange-btn-action {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            background-color: var(--green);
+            color: #fff;
+            margin-top: 5px;
+        }
+        .exchange-btn-action:hover { opacity: 0.8; }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            grid-area: main;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        /* Exchange Selector */
+        .exchange-selector { display: flex; gap: 10px; flex-wrap: wrap; }
+        .exchange-btn {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .exchange-btn svg { width: 24px; height: 16px; border-radius: 2px; box-shadow: 0 0 1px #000; }
+        .exchange-btn:hover { border-color: var(--primary-color); }
+        .exchange-btn.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+        }
+        
+        /* Stock Table */
+        .stock-table-container { max-height: 400px; overflow-y: auto; }
+        .stock-table { width: 100%; border-collapse: collapse; }
+        .stock-table th, .stock-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .stock-table th {
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+        }
+        .stock-table tbody tr { cursor: pointer; transition: background-color 0.1s ease; }
+        .stock-table tbody tr:hover { background-color: #2a2a2a; }
+        
+        /* Selected Stock View */
+        #selected-stock-view { display: none; flex-direction: column; gap: 20px; }
+        
+        /* Key Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .metric-card {
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        .metric-card h4 {
+            margin: 0 0 5px 0; font-size: 0.8rem; color: var(--text-muted);
+            font-weight: 400; text-transform: uppercase;
+        }
+        .metric-card p { margin: 0; font-size: 1.5rem; font-weight: 600; }
+        .metric-card .change { font-size: 0.9rem; font-weight: 500; }
+        .change-up { color: var(--green); }
+        .change-down { color: var(--red); }
+        .change-flat { color: var(--text-muted); }
+        
+        /* Chart Container */
+        .chart-container { position: relative; height: 400px; width: 100%; }
+
+        /* Trade Panel */
+        .trade-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .trade-form { display: flex; flex-direction: column; gap: 10px; }
+        .trade-form label { font-size: 0.8rem; color: var(--text-muted); }
+        .trade-input {
+            padding: 10px; font-size: 1rem; background-color: var(--bg-color);
+            border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px;
+        }
+        .trade-buttons { display: flex; gap: 10px; }
+        .trade-btn {
+            flex: 1; padding: 12px; font-size: 1rem; font-weight: 600;
+            border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s ease;
+        }
+        .trade-btn:hover { opacity: 0.8; }
+        .btn-buy { background-color: var(--green); color: #fff; }
+        .btn-sell { background-color: var(--red); color: #fff; }
+
+        /* Message Box */
+        #message-box {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 15px 25px; border-radius: 6px; background-color: var(--primary-color);
+            color: #fff; z-index: 101; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #message-box.show { opacity: 1; visibility: visible; }
+        #message-box.error { background-color: var(--red); }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Container -->
+    <div id="auth-container">
+        
+        <!-- Login Page -->
+        <div id="login-view" class="login-card">
+            <svg class="login-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13.1821C3 11.6022 4.23858 10.3637 5.81818 10.3637H18.1818C19.7614 10.3637 21 11.6022 21 13.1821V19.8182C21 21.3978 19.7614 22.6364 18.1818 22.6364H5.81818C4.23858 22.6364 3 21.3978 3 19.8182V13.1821Z" stroke="currentColor" stroke-width="2"/><path d="M7 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5.81818 10.3636C5.81818 8.78401 7.05676 7.54545 8.63636 7.54545H15.3636C16.9432 7.54545 18.1818 8.78401 18.1818 10.3636V10.3636H5.81818V10.3636Z" stroke="currentColor" stroke-width="2"/><path d="M10 7.54545V2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 7.54545V2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <h2>Financial Dashboard Login</h2>
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="login-input" placeholder="Enter your name">
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="login-input" placeholder="Enter password">
+            </div>
+            <button id="login-btn" class="login-btn">Login</button>
+            <button id="show-signup-btn" class="toggle-auth">Don't have an account? Sign Up</button>
+        </div>
+
+        <!-- Sign Up Page -->
+        <div id="signup-view" class="login-card">
+            <svg class="login-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13.1821C3 11.6022 4.23858 10.3637 5.81818 10.3637H18.1818C19.7614 10.3637 21 11.6022 21 13.1821V19.8182C21 21.3978 19.7614 22.6364 18.1818 22.6364H5.81818C4.23858 22.6364 3 21.3978 3 19.8182V13.1821Z" stroke="currentColor" stroke-width="2"/><path d="M7 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 14V14.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 18V18.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5.81818 10.3636C5.81818 8.78401 7.05676 7.54545 8.63636 7.54545H15.3636C16.9432 7.54545 18.1818 8.78401 18.1818 10.3636V10.3636H5.81818V10.3636Z" stroke="currentColor" stroke-width="2"/><path d="M10 7.54545V2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 7.54545V2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <h2>Create Account</h2>
+            <div class="input-group">
+                <label for="username-signup">Username</label>
+                <input type="text" id="username-signup" class="login-input" placeholder="Choose a username">
+            </div>
+            <div class="input-group">
+                <label for="password-signup">Password</label>
+                <input type="password" id="password-signup" class="login-input" placeholder="Create a password">
+            </div>
+            <button id="signup-btn" class="signup-btn">Sign Up</button>
+            <button id="show-login-btn" class="toggle-auth">Already have an account? Login</button>
+        </div>
+    </div>
+    
+    <!-- Main App Content, hidden until ready -->
+    <div id="app-view">
+        <header class="header">
+            <h1>Dashboard</h1>
+            <div class="user-info">
+                <div>Welcome, <strong id="user-name">...</strong></div>
+                <div>Base Cash: <strong id="user-cash-base">$0.00</strong> (USD)</div>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="dashboard">
+                
+                <!-- Sidebar: Portfolio -->
+                <aside class="sidebar">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">My Portfolio</h3>
+                        </div>
+                        <h4 class="cash-title">Cash Holdings</h4>
+                        <ul id="cash-list">
+                            <li>Loading...</li>
+                        </ul>
+                        <h4 class="cash-title" style="margin-top: 20px;">Share Holdings</h4>
+                        <ul id="shares-list">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Currency Exchange -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Currency Exchange</h3>
+                        </div>
+                        <div class="currency-exchange-form">
+                            <div class="form-row">
+                                <label for="currency-from">From:</label>
+                                <select id="currency-from" class="form-input"></select>
+                            </div>
+                            <div class="form-row">
+                                <label for="currency-amount">Amount:</label>
+                                <input type="number" id="currency-amount" class="form-input" placeholder="100.00">
+                            </div>
+                             <div class="form-row">
+                                <label for="currency-to">To:</label>
+                                <select id="currency-to" class="form-input"></select>
+                            </div>
+                            <div id="exchange-rate-display"></div>
+                            <button id="exchange-btn-action" class="exchange-btn-action">Exchange</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Main Content: Dashboard -->
+                <main class="main-content">
+                    
+                    <!-- Exchange Selector -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Select Exchange</h3>
+                            <span id="currency-display" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+                        </div>
+                        <div class="exchange-selector">
+                            <button class="exchange-btn active" data-exchange="NASDAQ" data-currency="USD">
+                                <!-- US Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 11"><path fill="#b22234" d="M0 0h21v11H0z"/><path fill="#fff" d="M0 1h21v1H0zm0 2h21v1H0zm0 2h21v1H0zm0 2h21v1H0zm0 2h21v1H0z"/><path fill="#3c3b6e" d="M0 0h9v7H0z"/><g fill="#fff"><path d="M1.9 4.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zM1 3.7l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zM1.9 2.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zM1 1.7l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zM1.9.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5z"/></g></svg>
+                                <span>NASDAQ</span>
+                            </button>
+                            <button class="exchange-btn" data-exchange="NYSE" data-currency="USD">
+                                <!-- US Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 11"><path fill="#b22234" d="M0 0h21v11H0z"/><path fill="#fff" d="M0 1h21v1H0zm0 2h21v1H0zm0 2h21v1H0zm0 2h21v1H0zm0 2h21v1H0z"/><path fill="#3c3b6e" d="M0 0h9v7H0z"/><g fill="#fff"><path d="M1.9 4.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zM1 3.7l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zM1.9 2.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zM1 1.7l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.2-.5.4.3.4-.3.2.5-.4.2-.1.5zM1.9.7l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5zm1.8 0l-.4-.2.1-.5.4.3.4-.3.2.5-.4.2-.1.5z"/></g></svg>
+                                <span>NYSE</span>
+                            </button>
+                            <button class="exchange-btn" data-exchange="LSE" data-currency="GBP">
+                                <!-- UK Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 11"><path fill="#00247d" d="M0 0h21v11H0z"/><path fill="#fff" d="M0 0l21 11m0-11L0 11"/><path fill="none" stroke="#fff" stroke-width="2.2" d="M-1 5.5h23m-11-6v12"/><path fill="none" stroke="#cf142b" stroke-width="1.466" d="M-1 5.5h23m-11-6v12"/><path fill="none" stroke="#cf142b" stroke-width="1.466" d="M0 0l21 11m0-11L0 11"/></svg>
+                                <span>LSE</span>
+                            </button>
+                            <button class="exchange-btn" data-exchange="TSE" data-currency="JPY">
+                                <!-- Japan Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><circle cx="1.5" cy="1" r=".6" fill="#BC002D"/></svg>
+                                <span>TSE</span>
+                            </button>
+                            <button class="exchange-btn" data-exchange="FWB" data-currency="EUR">
+                                <!-- Germany Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="3" fill="#000"/><rect y="1" width="5" height="2" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>
+                                <span>FWB</span>
+                            </button>
+                            <button class="exchange-btn" data-exchange="SSE" data-currency="CNY">
+                                <!-- China Flag SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="2" fill="#EE1C25"/><path d="M.5.8L.4.5h.2L.5.8zM.7.6L.6.3h.2L.7.6zM.7.3L.6 0h.2L.7.3zM.5.1L.4-.2h.2L.5.1z" fill="#FF0" transform="matrix(.4 0 0 .4 .3 .3)"/><path d="M0 .8L-.1.5h.2L0 .8zM.2.6L.1.3h.2L.2.6zM.2.3L.1 0h.2L.2.3zM0 .1L-.1-.2h.2L0 .1z" fill="#FF0" transform="matrix(.4 0 0 .4 .9 .4)"/><path d="M0 .8L-.1.5h.2L0 .8zM.2.6L.1.3h.2L.2.6zM.2.3L.1 0h.2L.2.3zM0 .1L-.1-.2h.2L0 .1z" fill="#FF0" transform="matrix(.4 0 0 .4 .9 .6)"/><path d="M0 .8L-.1.5h.2L0 .8zM.2.6L.1.3h.2L.2.6zM.2.3L.1 0h.2L.2.3zM0 .1L-.1-.2h.2L0 .1z" fill="#FF0" transform="matrix(.4 0 0 .4 .9 .8)"/></svg>
+                                <span>SSE</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stock Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" id="stock-table-title">NASDAQ Companies</h3>
+                        </div>
+                        <div class="stock-table-container">
+                            <table class="stock-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ticker</th>
+                                        <th>Company Name</th>
+                                        <th>Price</th>
+                                        <th>Change</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-table-body">
+                                    <!-- Stocks will be injected here by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Selected Stock Details -->
+                    <div id="selected-stock-view">
+                        <!-- Key Metrics -->
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h4>Current Price</h4>
+                                <p id="metric-price">$0.00</p>
+                                <span class="metric-change" id="metric-change"></span>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Volume</h4>
+                                <p id="metric-volume">0M</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>10-Day High</h4>
+                                <p id="metric-high">$0.00</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>10-Day Low</h4>
+                                <p id="metric-low">$0.00</p>
+                            </div>
+                        </div>
+
+                        <!-- Chart -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title" id="chart-title">Price & Volume</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="stockChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Trade Panel -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Simulated Trading</h3>
+                            </div>
+                            <div class="trade-panel">
+                                <div class="trade-form">
+                                    <label for="trade-shares">Shares</label>
+                                    <input type="number" id="trade-shares" class="trade-input" value="1" min="1">
+                                    <div class="trade-buttons">
+                                        <button class="trade-btn btn-buy" id="btn-buy">Buy</button>
+                                        <button class="trade-btn btn-sell" id="btn-sell">Sell</button>
+                                    </div>
+                                </div>
+                                <div class="trade-info">
+                                    <p>Current Price: <strong id="trade-price">$0.00</strong></p>
+                                    <p>Total Cost: <strong id="trade-cost">$0.00</strong></p>
+                                    <p>You Own: <strong id="trade-owned">0</strong> shares</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Message Box for notifications -->
+    <div id="message-box"></div>
+
+    <!-- App Logic -->
+    <script type="module">
+        // --- App Config & State ---
+        let chartInstance = null;
+        let currentStock = null;
+        let currentUsername = null;
+        let currentExchange = 'NASDAQ';
+        let currentCurrency = 'USD';
+        
+        // New multi-currency portfolio
+        const defaultPortfolio = { 
+            cash: { USD: 10000, GBP: 0, EUR: 0, JPY: 0, CNY: 0 }, 
+            shares: {} 
+        };
+        let userPortfolio = JSON.parse(JSON.stringify(defaultPortfolio)); // Deep copy
+        
+        // Mock exchange rates (relative to USD)
+        const MOCK_RATES = {
+            USD: 1.0,
+            GBP: 0.80, // 1 USD = 0.80 GBP
+            EUR: 0.92, // 1 USD = 0.92 EUR
+            JPY: 148.5, // 1 USD = 148.5 JPY
+            CNY: 7.22  // 1 USD = 7.22 CNY
+        };
+        const supportedCurrencies = Object.keys(MOCK_RATES);
+
+        // --- Mock Data ---
+        // Historical data for charts
+        const mockStockHistory = {
+          AAPL: { name: "Apple Inc.", data: [ { date: '2023-10-01', close: 173.0, volume: 52_000_000 }, { date: '2023-10-02', close: 174.5, volume: 48_000_000 }, { date: '2023-10-03', close: 172.4, volume: 60_000_000 }, { date: '2023-10-04', close: 175.0, volume: 55_000_000 }, { date: '2023-10-05', close: 176.8, volume: 50_000_000 }, { date: '2023-10-06', close: 177.5, volume: 45_000_000 }, { date: '2023-10-09', close: 179.0, volume: 58_000_000 }, { date: '2023-10-10', close: 178.4, volume: 51_000_000 }, { date: '2023-10-11', close: 180.1, volume: 62_000_000 }, { date: '2023-10-12', close: 181.5, volume: 53_000_000 } ]},
+          MSFT: { name: "Microsoft Corp.", data: [ { date: '2023-10-01', close: 314.0, volume: 20_000_000 }, { date: '2023-10-02', close: 318.2, volume: 22_000_000 }, { date: '2023-10-03', close: 316.5, volume: 19_000_000 }, { date: '2023-10-04', close: 320.0, volume: 25_000_000 }, { date: '2023-10-05', close: 322.1, volume: 23_000_000 }, { date: '2023-10-06', close: 325.0, volume: 21_000_000 }, { date: '2023-10-09', close: 327.8, volume: 26_000_000 }, { date: '2023-10-10', close: 326.5, volume: 20_000_000 }, { date: '2023-10-11', close: 330.1, volume: 28_000_000 }, { date: '2023-10-12', close: 332.0, volume: 24_000_000 } ]},
+          GOOGL: { name: "Alphabet Inc.", data: [ { date: '2023-10-01', close: 130.5, volume: 28_000_000 }, { date: '2023-10-02', close: 132.0, volume: 30_000_000 }, { date: '2023-10-03', close: 131.2, volume: 27_000_000 }, { date: '2023-10-04', close: 133.0, volume: 32_000_000 }, { date: '2023-10-05', close: 134.5, volume: 29_000_000 }, { date: '2023-10-06', close: 136.0, volume: 26_000_000 }, { date: '2023-10-09', close: 138.1, volume: 33_000_000 }, { date: '2023-10-10', close: 137.5, volume: 28_000_000 }, { date: '2023-10-11', close: 139.2, volume: 35_000_000 }, { date: '2023-10-12', close: 140.0, volume: 31_000_000 } ]},
+          JPM: { name: "JPMorgan Chase", data: [ { date: '2023-10-01', close: 145.0, volume: 15_000_000 }, { date: '2023-10-02', close: 146.2, volume: 14_000_000 }, { date: '2023-10-03', close: 144.9, volume: 17_000_000 }, { date: '2023-10-04', close: 147.0, volume: 16_000_000 }, { date: '2023-10-05', close: 148.1, volume: 13_000_000 }, { date: '2023-10-06', close: 147.5, volume: 12_000_000 }, { date: '2023-10-09', close: 149.0, volume: 18_000_000 }, { date: '2023-10-10', close: 148.3, volume: 15_000_000 }, { date: '2023-10-11', close: 150.0, volume: 19_000_000 }, { date: '2023-10-12', close: 151.0, volume: 16_000_000 } ]},
+          // LSE data is in PENCE
+          HSBA: { name: "HSBC Holdings", data: [ { date: '2023-10-01', close: 610.5, volume: 25_000_000 }, { date: '2023-10-02', close: 612.0, volume: 22_000_000 }, { date: '2023-10-03', close: 611.5, volume: 28_000_000 }, { date: '2023-10-04', close: 615.0, volume: 30_000_000 }, { date: '2023-10-05', close: 618.0, volume: 27_000_000 }, { date: '2023-10-06', close: 620.0, volume: 24_000_000 }, { date: '2023-10-09', close: 622.0, volume: 29_000_000 }, { date: '2023-10-10', close: 621.0, volume: 26_000_000 }, { date: '2023-10-11', close: 625.0, volume: 31_000_000 }, { date: '2023-10-12', close: 628.2, volume: 28_000_000 } ]},
+          // FWB data in EUR
+          SAP: { name: "SAP SE", data: [ { date: '2023-10-01', close: 125.0, volume: 3_000_000 }, { date: '2023-10-02', close: 126.2, volume: 2_800_000 }, { date: '2023-10-03', close: 124.9, volume: 3_100_000 }, { date: '2023-10-04', close: 127.0, volume: 3_300_000 }, { date: '2023-10-05', close: 128.1, volume: 2_900_000 }, { date: '2023-10-06', close: 127.5, volume: 2_700_000 }, { date: '2023-10-09', close: 129.0, volume: 3_400_000 }, { date: '2023-10-10', close: 128.3, volume: 3_000_000 }, { date: '2023-10-11', close: 130.0, volume: 3_500_000 }, { date: '2023-10-12', close: 131.0, volume: 3_200_000 } ]},
+          // TSE data in JPY
+          SONY: { name: "Sony Group Corp", data: [ { date: '2023-10-01', close: 12500, volume: 5_000_000 }, { date: '2023-10-02', close: 12550, volume: 4_800_000 }, { date: '2023-10-03', close: 12480, volume: 5_100_000 }, { date: '2023-10-04', close: 12600, volume: 5_300_000 }, { date: '2023-10-05', close: 12650, volume: 4_900_000 }, { date: '2023-10-06', close: 12700, volume: 4_700_000 }, { date: '2023-10-09', close: 12750, volume: 5_400_000 }, { date: '2023-10-10', close: 12720, volume: 5_000_000 }, { date: '2023-10-11', close: 12800, volume: 5_500_000 }, { date: '2023-10-12', close: 12850, volume: 5_200_000 } ]},
+          // SSE data in CNY
+          KWE: { name: "Kweichow Moutai", data: [ { date: '2023-10-01', close: 1630.0, volume: 2_000_000 }, { date: '2023-10-02', close: 1635.0, volume: 1_800_000 }, { date: '2023-10-03', close: 1628.0, volume: 2_100_000 }, { date: '2023-10-04', close: 1640.0, volume: 2_300_000 }, { date: '2023-10-05', close: 1645.0, volume: 1_900_000 }, { date: '2023-10-06', close: 1650.0, volume: 1_700_000 }, { date: '2023-10-09', close: 1655.0, volume: 2_400_000 }, { date: '2023-10-10', close: 1652.0, volume: 2_000_000 }, { date: '2023-10-11', close: 1660.0, volume: 2_500_000 }, { date: '2023-10-12', close: 1665.0, volume: 2_200_000 } ]}
+        };
+        // Add more history data by reusing
+        mockStockHistory.AMZN = { name: "Amazon.com", data: mockStockHistory.GOOGL.data };
+        mockStockHistory.TSLA = { name: "Tesla, Inc.", data: mockStockHistory.AAPL.data };
+        mockStockHistory.WMT = { name: "Walmart Inc.", data: mockStockHistory.JPM.data };
+        mockStockHistory.BAC = { name: "Bank of America", data: mockStockHistory.JPM.data };
+        mockStockHistory.AZN = { name: "AstraZeneca", data: mockStockHistory.HSBA.data };
+        mockStockHistory.VOD = { name: "Vodafone Group", data: mockStockHistory.HSBA.data };
+        mockStockHistory.VOW3 = { name: "Volkswagen", data: mockStockHistory.SAP.data };
+        mockStockHistory.TM = { name: "Toyota Motor", data: mockStockHistory.SONY.data };
+        mockStockHistory.ICBC = { name: "ICBC Bank", data: mockStockHistory.KWE.data };
+
+        // List of all companies for the table
+        const mockStockList = [
+            { ticker: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', currency: 'USD' },
+            { ticker: 'MSFT', name: 'Microsoft Corp.', exchange: 'NASDAQ', currency: 'USD' },
+            { ticker: 'GOOGL', name: 'Alphabet Inc.', exchange: 'NASDAQ', currency: 'USD' },
+            { ticker: 'AMZN', name: 'Amazon.com', exchange: 'NASDAQ', currency: 'USD' },
+            { ticker: 'TSLA', name: 'Tesla, Inc.', exchange: 'NASDAQ', currency: 'USD' },
+            { ticker: 'JPM', name: 'JPMorgan Chase', exchange: 'NYSE', currency: 'USD' },
+            { ticker: 'WMT', name: 'Walmart Inc.', exchange: 'NYSE', currency: 'USD' },
+            { ticker: 'BAC', name: 'Bank of America', exchange: 'NYSE', currency: 'USD' },
+            { ticker: 'HSBA', name: 'HSBC Holdings', exchange: 'LSE', currency: 'GBP' },
+            { ticker: 'AZN', name: 'AstraZeneca', exchange: 'LSE', currency: 'GBP' },
+            { ticker: 'VOD', name: 'Vodafone Group', exchange: 'LSE', currency: 'GBP' },
+            { ticker: 'SONY', name: 'Sony Group Corp', exchange: 'TSE', currency: 'JPY' },
+            { ticker: 'TM', name: 'Toyota Motor Corp', exchange: 'TSE', currency: 'JPY' },
+            { ticker: 'SAP', name: 'SAP SE', exchange: 'FWB', currency: 'EUR' },
+            { ticker: 'VOW3', name: 'Volkswagen AG', exchange: 'FWB', currency: 'EUR' },
+            { ticker: 'KWE', name: 'Kweichow Moutai', exchange: 'SSE', currency: 'CNY' },
+            { ticker: 'ICBC', name: 'ICBC Bank', exchange: 'SSE', currency: 'CNY' },
+        ];
+
+        // --- DOM Elements ---
+        const authContainer = document.getElementById('auth-container');
+        const loginView = document.getElementById('login-view');
+        const signupView = document.getElementById('signup-view');
+        const appView = document.getElementById('app-view');
+        
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const showSignupBtn = document.getElementById('show-signup-btn');
+        const showLoginBtn = document.getElementById('show-login-btn');
+        
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const usernameSignupInput = document.getElementById('username-signup');
+        const passwordSignupInput = document.getElementById('password-signup');
+        
+        const userNameEl = document.getElementById('user-name');
+        const userCashBaseEl = document.getElementById('user-cash-base');
+        const cashListEl = document.getElementById('cash-list');
+        const sharesListEl = document.getElementById('shares-list');
+        const exchangeSelector = document.querySelector('.exchange-selector');
+        const currencyDisplayEl = document.getElementById('currency-display');
+        
+        const stockTableBody = document.getElementById('stock-table-body');
+        const stockTableTitle = document.getElementById('stock-table-title');
+        const selectedStockView = document.getElementById('selected-stock-view');
+        
+        const metricPriceEl = document.getElementById('metric-price');
+        const metricChangeEl = document.getElementById('metric-change');
+        const metricVolumeEl = document.getElementById('metric-volume');
+        const metricHighEl = document.getElementById('metric-high');
+        const metricLowEl = document.getElementById('metric-low');
+        
+        const chartTitleEl = document.getElementById('chart-title');
+        const chartCanvas = document.getElementById('stockChart').getContext('2d');
+        
+        const tradeSharesEl = document.getElementById('trade-shares');
+        const tradePriceEl = document.getElementById('trade-price');
+        const tradeCostEl = document.getElementById('trade-cost');
+        const tradeOwnedEl = document.getElementById('trade-owned');
+        const btnBuy = document.getElementById('btn-buy');
+        const btnSell = document.getElementById('btn-sell');
+
+        const messageBox = document.getElementById('message-box');
+        
+        // Currency Exchange Elements
+        const currencyFromSelect = document.getElementById('currency-from');
+        const currencyToSelect = document.getElementById('currency-to');
+        const currencyAmountInput = document.getElementById('currency-amount');
+        const exchangeRateDisplay = document.getElementById('exchange-rate-display');
+        const exchangeBtnAction = document.getElementById('exchange-btn-action');
+
+        // --- Helper Functions ---
+        function formatCurrency(value, currency = 'USD') {
+            const options = { style: 'currency', currency: currency };
+            if (currency === 'JPY') {
+                options.minimumFractionDigits = 0;
+                options.maximumFractionDigits = 0;
+            }
+            // Use 'en-US' as a base locale for consistent formatting,
+            // but the currency symbol will change correctly.
+            return value.toLocaleString('en-US', options);
+        }
+        
+        function formatPrice(value, currency = 'USD') {
+             if (currency === 'GBP') {
+                // LSE prices are in pence
+                return (value / 100).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
+             }
+             return formatCurrency(value, currency);
+        }
+
+        function showMessage(text, isError = false) {
+            messageBox.textContent = text;
+            messageBox.className = isError ? 'error' : '';
+            messageBox.classList.add('show');
+            setTimeout(() => { messageBox.classList.remove('show'); }, 3000);
+        }
+        
+        function getLatestPrice(stockSymbol) {
+            const stock = mockStockHistory[stockSymbol];
+            if (!stock) return 0;
+            return stock.data[stock.data.length - 1].close;
+        }
+
+        // --- LocalStorage (No Firebase) ---
+        
+        /**
+         * Loads user portfolio from localStorage.
+         */
+        function loadUserData(username) {
+            const savedData = localStorage.getItem(username + '_portfolio');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                // Merge with default portfolio to add new currencies if they don't exist
+                userPortfolio = {
+                    cash: { ...defaultPortfolio.cash, ...parsedData.cash },
+                    shares: { ...parsedData.shares }
+                };
+            } else {
+                // Create a new portfolio for this user
+                userPortfolio = JSON.parse(JSON.stringify(defaultPortfolio));
+                // Ensure all "buyable" stocks are in the portfolio
+                mockStockList.forEach(stock => {
+                    if (!userPortfolio.shares[stock.ticker]) {
+                        userPortfolio.shares[stock.ticker] = 0;
+                    }
+                });
+                saveUserData(username);
+            }
+            // Ensure all stocks have an entry
+            mockStockList.forEach(stock => {
+                if (!userPortfolio.shares.hasOwnProperty(stock.ticker)) {
+                    userPortfolio.shares[stock.ticker] = 0;
+                }
+            });
+            
+            updatePortfolioView();
+        }
+        
+        /**
+         * Saves the current userPortfolio to localStorage.
+         */
+        function saveUserData(username) {
+            if (!username) return;
+            localStorage.setItem(username + '_portfolio', JSON.stringify(userPortfolio));
+        }
+
+        // --- App Initialization & Auth ---
+        
+        function initApp() {
+            currentUsername = localStorage.getItem('loggedInUser');
+            if (currentUsername) {
+                // User is logged in
+                userNameEl.textContent = currentUsername;
+                loadUserData(currentUsername);
+                authContainer.style.display = 'none';
+                appView.style.display = 'block';
+                // Load initial stock table and currency exchange
+                renderStockTable(currentExchange);
+                populateCurrencySelectors();
+            } else {
+                // User is logged out
+                authContainer.style.display = 'flex';
+                appView.style.display = 'none';
+                loginView.style.display = 'block';
+                signupView.style.display = 'none';
+            }
+        }
+        
+        function handleLogin() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (username === "" || password === "") {
+                showMessage("Please enter username and password", true);
+                return;
+            }
+            
+            const allUsers = JSON.parse(localStorage.getItem('allUsers')) || {};
+            
+            if (!allUsers[username]) {
+                showMessage("User not found. Please sign up.", true);
+                return;
+            }
+            
+            if (allUsers[username] !== password) {
+                showMessage("Incorrect password.", true);
+                return;
+            }
+            
+            localStorage.setItem('loggedInUser', username);
+            initApp();
+        }
+        
+        function handleSignup() {
+            const username = usernameSignupInput.value.trim();
+            const password = passwordSignupInput.value;
+
+            if (username === "" || password === "") {
+                showMessage("Please enter username and password", true);
+                return;
+            }
+            
+            const allUsers = JSON.parse(localStorage.getItem('allUsers')) || {};
+
+            if (allUsers[username]) {
+                showMessage("Username already taken. Please login.", true);
+                return;
+            }
+
+            // Create new user
+            allUsers[username] = password;
+            localStorage.setItem('allUsers', JSON.stringify(allUsers));
+            
+            // Log them in automatically
+            localStorage.setItem('loggedInUser', username);
+            showMessage("Sign up successful! Welcome.", false);
+            initApp();
+        }
+        
+        function handleLogout() {
+            localStorage.removeItem('loggedInUser');
+            currentUsername = null;
+            userPortfolio = JSON.parse(JSON.stringify(defaultPortfolio));
+            location.reload(); // Simple way to reset state
+        }
+        
+        function toggleAuthView(show) {
+            if (show === 'signup') {
+                loginView.style.display = 'none';
+                signupView.style.display = 'block';
+            } else {
+                loginView.style.display = 'block';
+                signupView.style.display = 'none';
+            }
+        }
+
+        // --- Trading Logic ---
+        
+        function handleBuy() {
+            const sharesToBuy = parseInt(tradeSharesEl.value);
+            const stockInfo = mockStockList.find(s => s.ticker === currentStock);
+            const stockCurrency = stockInfo.currency;
+            
+            if (isNaN(sharesToBuy) || sharesToBuy <= 0) {
+                showMessage("Please enter a valid number of shares.", true); return;
+            }
+            
+            const price = getLatestPrice(currentStock);
+            // Handle GBP pence to pounds conversion
+            const priceInMainUnit = (stockCurrency === 'GBP') ? price / 100 : price;
+            const totalCost = priceInMainUnit * sharesToBuy;
+            
+            if (userPortfolio.cash[stockCurrency] < totalCost) {
+                showMessage(`Not enough ${stockCurrency} to complete purchase. You have ${formatCurrency(userPortfolio.cash[stockCurrency], stockCurrency)}.`, true); 
+                return;
+            }
+            
+            userPortfolio.cash[stockCurrency] -= totalCost;
+            userPortfolio.shares[currentStock] = (userPortfolio.shares[currentStock] || 0) + sharesToBuy;
+            
+            saveUserData(currentUsername); // Save to localStorage
+            updatePortfolioView();
+            updateTradePanel();
+            showMessage(`Successfully purchased ${sharesToBuy} ${currentStock}!`, false);
+        }
+        
+        function handleSell() {
+            const sharesToSell = parseInt(tradeSharesEl.value);
+            const sharesOwned = userPortfolio.shares[currentStock] || 0;
+            
+            if (isNaN(sharesToSell) || sharesToSell <= 0) {
+                showMessage("Please enter a valid number of shares.", true); return;
+            }
+            
+            if (sharesToSell > sharesOwned) {
+                showMessage("You don't own that many shares to sell.", true); return;
+            }
+            
+            const stockInfo = mockStockList.find(s => s.ticker === currentStock);
+            const stockCurrency = stockInfo.currency;
+            const price = getLatestPrice(currentStock);
+            
+            // Handle GBP pence to pounds conversion
+            const priceInMainUnit = (stockCurrency === 'GBP') ? price / 100 : price;
+            const totalCredit = priceInMainUnit * sharesToSell;
+            
+            userPortfolio.cash[stockCurrency] += totalCredit;
+            userPortfolio.shares[currentStock] = sharesOwned - sharesToSell;
+            
+            saveUserData(currentUsername); // Save to localStorage
+            updatePortfolioView();
+            updateTradePanel();
+            showMessage(`Successfully sold ${sharesToSell} ${currentStock}!`, false);
+        }
+
+        // --- Currency Exchange Logic ---
+        function populateCurrencySelectors() {
+            currencyFromSelect.innerHTML = '';
+            currencyToSelect.innerHTML = '';
+            
+            supportedCurrencies.forEach(currency => {
+                const optionFrom = document.createElement('option');
+                optionFrom.value = currency;
+                optionFrom.textContent = currency;
+                currencyFromSelect.appendChild(optionFrom);
+                
+                const optionTo = document.createElement('option');
+                optionTo.value = currency;
+                optionTo.textContent = currency;
+                currencyToSelect.appendChild(optionTo);
+            });
+            
+            currencyFromSelect.value = 'USD';
+            currencyToSelect.value = 'EUR';
+            updateExchangeRateDisplay();
+        }
+
+        function updateExchangeRateDisplay() {
+            const fromCcy = currencyFromSelect.value;
+            const toCcy = currencyToSelect.value;
+            const amount = parseFloat(currencyAmountInput.value) || 1;
+            
+            if (fromCcy === toCcy) {
+                exchangeRateDisplay.textContent = "Cannot exchange the same currency.";
+                return;
+            }
+
+            const fromRateUsd = 1 / MOCK_RATES[fromCcy]; // How many USD 1 unit of FromCcy is
+            const toRate = MOCK_RATES[toCcy]; // How many ToCcy 1 USD is
+            
+            const conversionRate = fromRateUsd * toRate;
+            const convertedAmount = amount * conversionRate;
+            
+            exchangeRateDisplay.textContent = `${formatCurrency(amount, fromCcy)} = ${formatCurrency(convertedAmount, toCcy)}`;
+        }
+        
+        function handleCurrencyExchange() {
+            const fromCcy = currencyFromSelect.value;
+            const toCcy = currencyToSelect.value;
+            const amount = parseFloat(currencyAmountInput.value);
+
+            if (isNaN(amount) || amount <= 0) {
+                showMessage("Please enter a valid amount to exchange.", true);
+                return;
+            }
+            if (fromCcy === toCcy) {
+                showMessage("Cannot exchange the same currency.", true);
+                return;
+            }
+            if (userPortfolio.cash[fromCcy] < amount) {
+                showMessage(`Not enough ${fromCcy} to exchange.`, true);
+                return;
+            }
+            
+            // Convert
+            const fromRateUsd = 1 / MOCK_RATES[fromCcy];
+            const toRate = MOCK_RATES[toCcy];
+            const conversionRate = fromRateUsd * toRate;
+            const convertedAmount = amount * conversionRate;
+            
+            userPortfolio.cash[fromCcy] -= amount;
+            userPortfolio.cash[toCcy] += convertedAmount;
+            
+            saveUserData(currentUsername);
+            updatePortfolioView();
+            updateExchangeRateDisplay();
+            currencyAmountInput.value = '';
+            
+            showMessage(`Exchanged ${formatCurrency(amount, fromCcy)} to ${formatCurrency(convertedAmount, toCcy)}.`, false);
+        }
+
+        // --- UI Update Functions ---
+
+        /**
+         * Renders the main stock table based on the selected exchange.
+         */
+        function renderStockTable(exchange) {
+            stockTableBody.innerHTML = ''; // Clear table
+            stockTableTitle.textContent = `${exchange} Companies`;
+            currencyDisplayEl.textContent = `Trading in ${currentCurrency}`;
+
+            mockStockList
+                .filter(stock => stock.exchange === exchange)
+                .forEach(stock => {
+                    const history = mockStockHistory[stock.ticker];
+                    if (!history) return;
+                    
+                    const latest = history.data[history.data.length - 1];
+                    const prev = history.data[history.data.length - 2];
+                    const change = latest.close - prev.close;
+                    const changeColor = change > 0 ? 'var(--green)' : change < 0 ? 'var(--red)' : 'var(--text-muted)';
+                    
+                    const row = document.createElement('tr');
+                    row.dataset.ticker = stock.ticker; // Set data attribute
+                    row.innerHTML = `
+                        <td><strong>${stock.ticker}</strong></td>
+                        <td>${stock.name}</td>
+                        <td>${formatPrice(latest.close, stock.currency)}</td>
+                        <td style="color: ${changeColor}">${change.toFixed(2)}</td>
+                    `;
+                    row.addEventListener('click', () => handleStockSelect(stock.ticker));
+                    stockTableBody.appendChild(row);
+                });
+        }
+        
+        /**
+         * Handles a user clicking on a stock in the table.
+         */
+        function handleStockSelect(ticker) {
+            currentStock = ticker;
+            selectedStockView.style.display = 'flex'; // Show the details
+            updateDashboardView(ticker);
+        }
+
+        /**
+         * Updates the portfolio sidebar (Cash & Shares).
+         */
+        function updatePortfolioView() {
+            userCashBaseEl.textContent = formatCurrency(userPortfolio.cash.USD, 'USD'); 
+            cashListEl.innerHTML = ''; // Clear cash list
+            sharesListEl.innerHTML = ''; // Clear shares list
+            
+            let hasCash = false;
+            for (const [currency, amount] of Object.entries(userPortfolio.cash)) {
+                if (amount > 0.01) { // Only show currencies they have
+                    hasCash = true;
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span><strong>${currency}</strong></span>
+                        <span>${formatCurrency(amount, currency)}</span>
+                    `;
+                    cashListEl.appendChild(li);
+                }
+            }
+            if (!hasCash) {
+                cashListEl.innerHTML = '<li>No cash held.</li>';
+            }
+            
+            let hasShares = false;
+            for (const [ticker, shares] of Object.entries(userPortfolio.shares)) {
+                if (shares > 0) {
+                    hasShares = true;
+                    const stock = mockStockList.find(s => s.ticker === ticker);
+                    if (!stock) continue; 
+                    
+                    const currency = stock.currency;
+                    const price = getLatestPrice(ticker);
+                    
+                    // Handle GBP pence to pounds conversion for value
+                    const priceInMainUnit = (currency === 'GBP') ? price / 100 : price;
+                    const value = priceInMainUnit * shares;
+                    
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span><strong>${ticker}</strong> (${shares} shares)</span>
+                        <span>${formatCurrency(value, currency)}</span>
+                    `;
+                    sharesListEl.appendChild(li);
+                }
+            }
+            if (!hasShares) {
+                sharesListEl.innerHTML = '<li>No shares owned.</li>';
+            }
+        }
+
+        /**
+         * Updates the metrics, chart, and trade panel for the selected stock.
+         */
+        function updateDashboardView(stockSymbol) {
+            const stockHistory = mockStockHistory[stockSymbol];
+            const stockInfo = mockStockList.find(s => s.ticker === stockSymbol);
+            if (!stockHistory || !stockInfo) return;
+
+            const currency = stockInfo.currency;
+            const data = stockHistory.data;
+            const latestData = data[data.length - 1];
+            const prevData = data[data.length - 2];
+            const change = latestData.close - prevData.close;
+            const changePercent = (change / prevData.close) * 100;
+            
+            metricPriceEl.textContent = formatPrice(latestData.close, currency);
+            metricVolumeEl.textContent = `${(latestData.volume / 1_000_000).toFixed(2)}M`;
+            metricHighEl.textContent = formatPrice(Math.max(...data.map(d => d.close)), currency);
+            metricLowEl.textContent = formatPrice(Math.min(...data.map(d => d.close)), currency);
+            
+            metricChangeEl.textContent = `${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
+            metricChangeEl.className = 'metric-change';
+            if (change > 0) metricChangeEl.classList.add('change-up');
+            else if (change < 0) metricChangeEl.classList.add('change-down');
+            else metricChangeEl.classList.add('change-flat');
+
+            chartTitleEl.textContent = `Price & Volume (${stockSymbol})`;
+            renderChart(data, currency);
+            
+            updateTradePanel();
+        }
+
+        /**
+         * Updates just the trade panel info.
+         */
+        function updateTradePanel() {
+            if (!currentStock) return;
+            
+            const stockInfo = mockStockList.find(s => s.ticker === currentStock);
+            const currency = stockInfo ? stockInfo.currency : 'USD';
+            
+            const price = getLatestPrice(currentStock);
+            const shares = parseInt(tradeSharesEl.value) || 0;
+            const sharesOwned = userPortfolio.shares[currentStock] || 0;
+            
+            // Handle GBP pence to pounds conversion
+            const priceInMainUnit = (currency === 'GBP') ? price / 100 : price;
+            const totalCost = priceInMainUnit * shares;
+            
+            tradePriceEl.textContent = formatPrice(price, currency);
+            tradeCostEl.textContent = formatCurrency(totalCost, currency);
+            tradeOwnedEl.textContent = sharesOwned;
+        }
+
+        /**
+         * Renders the stock chart using Chart.js.
+         */
+        function renderChart(data, currency) {
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const labels = data.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const priceData = data.map(d => d.close);
+            const volumeData = data.map(d => d.volume);
+
+            const computedStyles = getComputedStyle(document.documentElement);
+            const primaryColor = computedStyles.getPropertyValue('--primary-color').trim() || '#4a90e2';
+            const textColor = computedStyles.getPropertyValue('--text-color').trim() || '#e0e0e0';
+            const textMuted = computedStyles.getPropertyValue('--text-muted').trim() || '#888';
+            const borderColor = computedStyles.getPropertyValue('--border-color').trim() || '#333';
+            const primaryColorTransparent = 'rgba(74, 144, 226, 0.3)'; 
+
+            chartInstance = new Chart(chartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Close Price',
+                            data: priceData,
+                            borderColor: primaryColor,
+                            backgroundColor: 'transparent',
+                            yAxisID: 'y-price',
+                            tension: 0.1
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Volume',
+                            data: volumeData,
+                            backgroundColor: primaryColorTransparent,
+                            yAxisID: 'y-volume',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    color: textMuted,
+                    scales: {
+                        x: { ticks: { color: textMuted }, grid: { color: borderColor } },
+                        'y-price': {
+                            position: 'left',
+                            ticks: { 
+                                color: primaryColor,
+                                callback: (value) => formatPrice(value, currency)
+                            },
+                            grid: { color: borderColor }
+                        },
+                        'y-volume': {
+                            position: 'right',
+                            ticks: { 
+                                color: textMuted,
+                                callback: (value) => `${value / 1_000_000}M`
+                            },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: textColor } },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.dataset.yAxisID === 'y-price') {
+                                        label += formatPrice(context.parsed.y, currency);
+                                    } else {
+                                        label += `${(context.parsed.y / 1_000_000).toFixed(2)}M`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Event Listeners ---
+        loginBtn.addEventListener('click', handleLogin);
+        signupBtn.addEventListener('click', handleSignup);
+        logoutBtn.addEventListener('click', handleLogout);
+        showSignupBtn.addEventListener('click', () => toggleAuthView('signup'));
+        showLoginBtn.addEventListener('click', () => toggleAuthView('login'));
+        
+        exchangeSelector.addEventListener('click', (e) => {
+            const button = e.target.closest('.exchange-btn');
+            if (!button) return;
+            
+            exchangeSelector.querySelectorAll('.exchange-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            currentExchange = button.dataset.exchange;
+            currentCurrency = button.dataset.currency;
+            
+            renderStockTable(currentExchange);
+            selectedStockView.style.display = 'none';
+            currentStock = null;
+        });
+        
+        tradeSharesEl.addEventListener('input', updateTradePanel);
+        btnBuy.addEventListener('click', handleBuy);
+        btnSell.addEventListener('click', handleSell);
+        
+        // Currency Exchange Listeners
+        currencyFromSelect.addEventListener('change', updateExchangeRateDisplay);
+        currencyToSelect.addEventListener('change', updateExchangeRateDisplay);
+        currencyAmountInput.addEventListener('input', updateExchangeRateDisplay);
+        exchangeBtnAction.addEventListener('click', handleCurrencyExchange);
+
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
